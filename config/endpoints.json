@@ -1,0 +1,7 @@
+{
+  "endpoints": [
+    {"name": "Example Domain", "url": "https://example.com"},
+    {"name": "JSONPlaceholder", "url": "https://jsonplaceholder.typicode.com/posts/1"},
+    {"name": "httpbin Status", "url": "https://httpbin.org/status/200"}
+  ]
+}
