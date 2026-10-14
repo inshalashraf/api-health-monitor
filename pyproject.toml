@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "api-health-monitor"
+version = "1.0.0"
+description = "A lightweight Python CLI for HTTP endpoint health and latency checks."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "MD Inshal Ashraf" }]
+dependencies = []
+
+[project.scripts]
+api-health-monitor = "api_health_monitor.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["api_health_monitor*"]
