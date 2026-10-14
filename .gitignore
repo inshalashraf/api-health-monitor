@@ -1,0 +1,17 @@
+# Python artifacts
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.env
+
+# Test/build output
+.pytest_cache/
+.coverage
+htmlcov/
+build/
+dist/
+
+# Generated health reports
+reports/
