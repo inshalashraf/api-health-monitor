@@ -2,7 +2,8 @@
 import argparse
 import sys
 
-from .monitor import load_config, run_checks, write_csv_report, write_json_report
+from .monitor import load_config, write_csv_report, write_json_report
+from .retry import run_checks_with_retries
 
 
 def main() -> int:
@@ -10,6 +11,8 @@ def main() -> int:
     parser.add_argument("-c", "--config", default="config/endpoints.json", help="Path to endpoint JSON config")
     parser.add_argument("--timeout", type=float, default=5.0, help="Request timeout in seconds")
     parser.add_argument("--expected-status", type=int, default=200, help="HTTP status considered healthy")
+    parser.add_argument("--retries", type=int, default=2, help="Retries for network errors and HTTP 5xx responses")
+    parser.add_argument("--retry-delay", type=float, default=0.5, help="Initial retry delay in seconds; doubles after each attempt")
     parser.add_argument("--json", dest="json_path", default="reports/health-report.json", help="JSON output path")
     parser.add_argument("--csv", dest="csv_path", default="reports/health-report.csv", help="CSV output path")
     args = parser.parse_args()
@@ -17,6 +20,10 @@ def main() -> int:
         parser.error("--timeout must be greater than zero")
     if not 100 <= args.expected_status <= 599:
         parser.error("--expected-status must be between 100 and 599")
+    if args.retries < 0:
+        parser.error("--retries cannot be negative")
+    if args.retry_delay < 0:
+        parser.error("--retry-delay cannot be negative")
 
     try:
         config = load_config(args.config)
@@ -24,8 +31,9 @@ def main() -> int:
         print(f"Configuration error: {exc}", file=sys.stderr)
         return 2
 
-    results = run_checks(config["endpoints"], timeout=args.timeout,
-                         expected_status=args.expected_status)
+    results = run_checks_with_retries(config["endpoints"], timeout=args.timeout,
+                                       expected_status=args.expected_status,
+                                       retries=args.retries, retry_delay=args.retry_delay)
     print("\nAPI Health Monitor\n" + "=" * 68)
     for item in results:
         label = "UP" if item.healthy else "DOWN"

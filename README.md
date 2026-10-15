@@ -18,14 +18,15 @@ Requirements: Python 3.10+. Edit `config/endpoints.json` to configure endpoints.
 python -m api_health_monitor.cli --help
 ```
 
-`--config` chooses the JSON config, `--timeout` sets seconds per request, `--expected-status` sets the healthy HTTP status, `--json` and `--csv` choose report paths. Exit codes: 0 when all endpoints are healthy, 1 when checks fail, 2 on configuration/report errors. Only monitor endpoints you own or are authorized to check.
+`--config` chooses the JSON config, `--timeout` sets seconds per request, `--expected-status` sets the healthy HTTP status, `--retries` sets the number of retries (default: 2), `--retry-delay` sets the initial backoff delay in seconds (default: 0.5), and `--json` and `--csv` choose report paths. Exit codes: 0 when all endpoints are healthy, 1 when checks fail, 2 on configuration/report errors. Only monitor endpoints you own or are authorized to check.
 
 ## Features
 
 - HTTP status and response-latency checks
 - Timeout, DNS, connection, and HTTP error reporting
 - Configurable healthy status code
+- Exponential-backoff retries for network failures and HTTP 5xx responses; 4xx responses are not retried
 - Timestamped JSON summary and CSV reports
 - Standard-library unit tests; no runtime dependencies
 
-Checks run sequentially. Continuous scheduling, authentication, retries, and alerts are intentionally out of scope for this first version.
+Checks run sequentially. Retries use exponential backoff and are configurable from the CLI. Continuous scheduling, authentication, and alert delivery remain future improvements.
