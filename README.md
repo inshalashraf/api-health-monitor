@@ -22,11 +22,12 @@ python -m api_health_monitor.cli --help
 
 ## Features
 
-- HTTP status and response-latency checks
+- HTTP status and per-request latency checks
+- Attempt counts and total check duration, including retry delays
 - Timeout, DNS, connection, and HTTP error reporting
 - Configurable healthy status code
 - Exponential-backoff retries for network failures and HTTP 5xx responses; 4xx responses are not retried
 - Timestamped JSON summary and CSV reports
 - Standard-library unit tests; no runtime dependencies
 
-Checks run sequentially. Retries use exponential backoff and are configurable from the CLI. Continuous scheduling, authentication, and alert delivery remain future improvements.
+Checks run sequentially. `response_time_ms` records the final request's latency; `total_duration_ms` includes all attempts and backoff delays. JSON and CSV reports include the attempt count and total duration. Continuous scheduling, authentication, and alert delivery remain future improvements.
