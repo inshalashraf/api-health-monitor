@@ -30,7 +30,7 @@ def check_with_retries(
         )
         if result.healthy or not transient or attempt == retries:
             elapsed_ms = round((perf_counter() - started) * 1000, 2)
-            return replace(result, response_time_ms=elapsed_ms)
+            return replace(result, attempts=attempt + 1, total_duration_ms=elapsed_ms)
         if retry_delay:
             time.sleep(retry_delay * (2 ** attempt))
 

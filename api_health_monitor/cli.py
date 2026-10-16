@@ -39,7 +39,9 @@ def main() -> int:
         label = "UP" if item.healthy else "DOWN"
         status = str(item.status_code) if item.status_code is not None else "n/a"
         latency = f"{item.response_time_ms:.2f} ms" if item.response_time_ms is not None else "n/a"
-        print(f"[{label:4}] {item.name:<25} HTTP {status:<4} {latency:>12}")
+        total = f"{item.total_duration_ms:.2f} ms" if item.total_duration_ms is not None else "n/a"
+        attempts = f"{item.attempts} attempt" + ("" if item.attempts == 1 else "s")
+        print(f"[{label:4}] {item.name:<25} HTTP {status:<4} latency={latency:>10} total={total:>10} ({attempts})")
         if item.error:
             print(f"       {item.error}")
     healthy = sum(item.healthy for item in results)

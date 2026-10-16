@@ -62,6 +62,30 @@ class RetryTests(unittest.TestCase):
         self.assertFalse(result.healthy)
         check.assert_called_once()
 
+    def test_preserves_request_latency_and_reports_total_duration(self):
+        with patch("api_health_monitor.retry.check_endpoint", side_effect=[self.failed_network, self.healthy]) as check:
+            with patch("api_health_monitor.retry.time.sleep") as sleep:
+                with patch("api_health_monitor.retry.perf_counter", side_effect=[1.0, 1.25]):
+                    result = check_with_retries(self.endpoint, retries=1, retry_delay=0.1)
+        self.assertTrue(result.healthy)
+        self.assertEqual(result.response_time_ms, 2.0)
+        self.assertEqual(result.attempts, 2)
+        self.assertEqual(result.total_duration_ms, 250.0)
+        self.assertEqual(check.call_count, 2)
+        sleep.assert_called_once_with(0.1)
+
+    def test_exhausted_retries_report_attempts_and_exponential_backoff(self):
+        with patch("api_health_monitor.retry.check_endpoint", return_value=self.failed_server) as check:
+            with patch("api_health_monitor.retry.time.sleep") as sleep:
+                with patch("api_health_monitor.retry.perf_counter", side_effect=[2.0, 2.45]):
+                    result = check_with_retries(self.endpoint, retries=2, retry_delay=0.1)
+        self.assertFalse(result.healthy)
+        self.assertEqual(result.response_time_ms, 2.0)
+        self.assertEqual(result.attempts, 3)
+        self.assertEqual(result.total_duration_ms, 450.0)
+        self.assertEqual(check.call_count, 3)
+        self.assertEqual([entry.args[0] for entry in sleep.call_args_list], [0.1, 0.2])
+
     def test_negative_retry_count_is_rejected(self):
         with self.assertRaises(ValueError):
             check_with_retries(self.endpoint, retries=-1)
