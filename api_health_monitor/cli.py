@@ -2,6 +2,7 @@
 import argparse
 import sys
 
+from .history import append_history, read_history, summarize_history
 from .monitor import load_config, write_csv_report, write_json_report
 from .retry import run_checks_with_retries
 
@@ -15,6 +16,7 @@ def main() -> int:
     parser.add_argument("--retry-delay", type=float, default=0.5, help="Initial retry delay in seconds; doubles after each attempt")
     parser.add_argument("--json", dest="json_path", default="reports/health-report.json", help="JSON output path")
     parser.add_argument("--csv", dest="csv_path", default="reports/health-report.csv", help="CSV output path")
+    parser.add_argument("--history", default="reports/history.jsonl", help="Append-only JSONL history path")
     args = parser.parse_args()
     if args.timeout <= 0:
         parser.error("--timeout must be greater than zero")
@@ -27,13 +29,16 @@ def main() -> int:
 
     try:
         config = load_config(args.config)
+        history_records = read_history(args.history)
     except (OSError, ValueError) as exc:
-        print(f"Configuration error: {exc}", file=sys.stderr)
+        print(f"Configuration/history error: {exc}", file=sys.stderr)
         return 2
 
-    results = run_checks_with_retries(config["endpoints"], timeout=args.timeout,
-                                       expected_status=args.expected_status,
-                                       retries=args.retries, retry_delay=args.retry_delay)
+    results = run_checks_with_retries(
+        config["endpoints"], timeout=args.timeout,
+        expected_status=args.expected_status,
+        retries=args.retries, retry_delay=args.retry_delay,
+    )
     print("\nAPI Health Monitor\n" + "=" * 68)
     for item in results:
         label = "UP" if item.healthy else "DOWN"
@@ -46,13 +51,26 @@ def main() -> int:
             print(f"       {item.error}")
     healthy = sum(item.healthy for item in results)
     print("-" * 68 + f"\nHealthy: {healthy}/{len(results)}")
+
     try:
         write_json_report(results, args.json_path)
         write_csv_report(results, args.csv_path)
+        history_records.extend(append_history(results, args.history))
     except OSError as exc:
-        print(f"Report error: {exc}", file=sys.stderr)
+        print(f"Report/history error: {exc}", file=sys.stderr)
         return 2
+
     print(f"JSON report: {args.json_path}\nCSV report:  {args.csv_path}")
+    print(f"History:     {args.history}")
+    print("Historical uptime (all recorded checks):")
+    for summary in summarize_history(history_records):
+        average = summary["average_response_time_ms"]
+        latency_text = f"{average:.2f} ms" if average is not None else "n/a"
+        print(
+            f"  {summary['name']}: {summary['uptime_percentage']:.2f}% "
+            f"({summary['healthy']}/{summary['checks']} checks), "
+            f"average latency {latency_text}"
+        )
     return 0 if healthy == len(results) else 1
 
 
