@@ -22,6 +22,8 @@ class MonitorTests(unittest.TestCase):
         self.assertTrue(result.healthy)
         self.assertEqual(result.status_code, 200)
         self.assertIsNotNone(result.response_time_ms)
+        self.assertEqual(result.total_duration_ms, result.response_time_ms)
+        self.assertEqual(result.attempts, 1)
 
     @patch("api_health_monitor.monitor.urlopen")
     def test_unexpected_http_status(self, mocked):

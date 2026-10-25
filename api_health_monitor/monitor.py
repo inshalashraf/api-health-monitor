@@ -22,6 +22,8 @@ class CheckResult:
     response_time_ms: float | None
     healthy: bool
     error: str | None = None
+    attempts: int = 1
+    total_duration_ms: float | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -46,16 +48,16 @@ def check_endpoint(endpoint: dict[str, str], *, timeout: float = 5.0,
         elapsed = round((time.perf_counter() - started) * 1000, 2)
         healthy = status == expected_status
         error = None if healthy else f"Expected HTTP {expected_status}, received {status}"
-        return CheckResult(name, url, checked_at, status, elapsed, healthy, error)
+        return CheckResult(name, url, checked_at, status, elapsed, healthy, error, total_duration_ms=elapsed)
     except HTTPError as exc:
         elapsed = round((time.perf_counter() - started) * 1000, 2)
         healthy = exc.code == expected_status
         error = None if healthy else f"Expected HTTP {expected_status}, received {exc.code}"
-        return CheckResult(name, url, checked_at, exc.code, elapsed, healthy, error)
+        return CheckResult(name, url, checked_at, exc.code, elapsed, healthy, error, total_duration_ms=elapsed)
     except (URLError, TimeoutError, OSError) as exc:
         elapsed = round((time.perf_counter() - started) * 1000, 2)
         reason = getattr(exc, "reason", exc)
-        return CheckResult(name, url, checked_at, None, elapsed, False, str(reason))
+        return CheckResult(name, url, checked_at, None, elapsed, False, str(reason), total_duration_ms=elapsed)
 
 
 def load_config(path: str | Path) -> dict[str, Any]:
