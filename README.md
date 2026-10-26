@@ -18,7 +18,31 @@ Requirements: Python 3.10+. Edit `config/endpoints.json` to configure endpoints.
 python -m api_health_monitor.cli --help
 ```
 
-`--config` chooses the JSON config, `--timeout` sets seconds per request, `--expected-status` sets the healthy HTTP status, `--retries` sets the number of retries (default: 2), `--retry-delay` sets the initial backoff delay in seconds (default: 0.5), `--json` and `--csv` choose report paths, and `--history` chooses the persistent JSONL history file (default: `reports/history.jsonl`). Exit codes: 0 when all endpoints are healthy, 1 when checks fail, 2 on configuration/report/history errors. Only monitor endpoints you own or are authorized to check.
+- `--config`: JSON endpoint configuration (default: `config/endpoints.json`)
+- `--timeout`: seconds per request (default: 5)
+- `--expected-status`: HTTP status considered healthy (default: 200)
+- `--retries`: retries for network errors and HTTP 5xx responses (default: 2)
+- `--retry-delay`: initial exponential-backoff delay in seconds (default: 0.5)
+- `--json` / `--csv`: report output paths
+- `--history`: append-only JSONL history path (default: `reports/history.jsonl`)
+- `--interval`: seconds between monitoring cycles; 0 runs once (default: 0)
+- `--max-runs`: stop after this many cycles; omit to run continuously when an interval is set
+
+### Run continuously
+
+Check every 30 seconds until stopped with Ctrl+C:
+
+```bash
+python -m api_health_monitor.cli --interval 30
+```
+
+Run exactly five cycles, 10 seconds apart:
+
+```bash
+python -m api_health_monitor.cli --interval 10 --max-runs 5
+```
+
+Reports are refreshed after each cycle, while JSONL history is appended so uptime and average latency summaries accumulate across runs. Continuous mode exits with status 1 if any cycle finds an unhealthy endpoint, and status 2 if a configuration or report/history error occurs. Only monitor endpoints you own or are authorized to check.
 
 ## Features
 
@@ -28,8 +52,9 @@ python -m api_health_monitor.cli --help
 - Configurable healthy status code
 - Exponential-backoff retries for network failures and HTTP 5xx responses; 4xx responses are not retried
 - Timestamped JSON summary and CSV reports
-- Append-only JSON Lines history across runs, with all-time uptime percentage and average measured latency per endpoint
+- Append-only JSON Lines history, all-time uptime percentage, and average measured latency per endpoint
+- Continuous monitoring with configurable intervals and finite run limits
 - Validates history records and reports malformed JSONL with a line number
 - Standard-library unit tests; no runtime dependencies
 
-Checks run sequentially. `response_time_ms` records the final request's latency; `total_duration_ms` includes all attempts and backoff delays. JSON and CSV reports include attempt count and total duration. The history file is append-only; choose another path with `--history` to start a separate history, or remove the file to reset it. Continuous scheduling, authentication, and alert delivery remain future improvements.
+Checks run sequentially. `response_time_ms` records the final request's latency; `total_duration_ms` includes all attempts and backoff delays. The history file is append-only; choose another path with `--history` to start a separate history, or remove the file to reset it. Authentication and alert delivery remain future improvements.
