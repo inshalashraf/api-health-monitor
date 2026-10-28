@@ -2,6 +2,7 @@
 import argparse
 import sys
 
+from .alerts import send_webhook_alert
 from .history import append_history, read_history, summarize_history
 from .monitor import load_config, write_csv_report, write_json_report
 from .retry import run_checks_with_retries
@@ -22,6 +23,10 @@ def run_once(args) -> int:
         expected_status=args.expected_status,
         retries=args.retries, retry_delay=args.retry_delay,
     )
+    if args.webhook_url:
+        alert_error = send_webhook_alert(results, args.webhook_url, timeout=args.timeout)
+        if alert_error:
+            print(f"Alert warning: {alert_error}", file=sys.stderr)
     print("\nAPI Health Monitor\n" + "=" * 68)
     for item in results:
         label = "UP" if item.healthy else "DOWN"
@@ -67,6 +72,7 @@ def main() -> int:
     parser.add_argument("--json", dest="json_path", default="reports/health-report.json", help="JSON output path")
     parser.add_argument("--csv", dest="csv_path", default="reports/health-report.csv", help="CSV output path")
     parser.add_argument("--history", default="reports/history.jsonl", help="Append-only JSONL history path")
+    parser.add_argument("--webhook-url", default=None, help="Optional HTTP(S) webhook to notify when endpoints are unhealthy")
     parser.add_argument("--interval", type=float, default=0, help="Seconds between cycles; 0 runs once (default: 0)")
     parser.add_argument("--max-runs", type=int, default=None, help="Stop after this many cycles; omit for continuous monitoring")
     args = parser.parse_args()
