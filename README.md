@@ -25,6 +25,7 @@ python -m api_health_monitor.cli --help
 - `--retry-delay`: initial exponential-backoff delay in seconds (default: 0.5)
 - `--json` / `--csv`: report output paths
 - `--history`: append-only JSONL history path (default: `reports/history.jsonl`)
+- `--webhook-url`: optional HTTP(S) endpoint that receives a JSON alert when any monitored endpoint is unhealthy
 - `--interval`: seconds between monitoring cycles; 0 runs once (default: 0)
 - `--max-runs`: stop after this many cycles; omit to run continuously when an interval is set
 
@@ -35,6 +36,14 @@ Check every 30 seconds until stopped with Ctrl+C:
 ```bash
 python -m api_health_monitor.cli --interval 30
 ```
+
+Send a JSON alert to your webhook whenever a check finds an unhealthy endpoint:
+
+```bash
+python -m api_health_monitor.cli --webhook-url https://your-webhook.example/endpoint
+```
+
+Keep webhook URLs containing tokens private; do not commit them to source control. Alerts are sent only when at least one endpoint is unhealthy. Delivery problems are printed as warnings and do not mask the monitor result.
 
 Run exactly five cycles, 10 seconds apart:
 
@@ -54,7 +63,8 @@ Reports are refreshed after each cycle, while JSONL history is appended so uptim
 - Timestamped JSON summary and CSV reports
 - Append-only JSON Lines history, all-time uptime percentage, and average measured latency per endpoint
 - Continuous monitoring with configurable intervals and finite run limits
+- Optional JSON webhook alerts for unhealthy endpoints
 - Validates history records and reports malformed JSONL with a line number
 - Standard-library unit tests; no runtime dependencies
 
-Checks run sequentially. `response_time_ms` records the final request's latency; `total_duration_ms` includes all attempts and backoff delays. The history file is append-only; choose another path with `--history` to start a separate history, or remove the file to reset it. Authentication and alert delivery remain future improvements.
+Checks run sequentially. `response_time_ms` records the final request's latency; `total_duration_ms` includes all attempts and backoff delays. The history file is append-only; choose another path with `--history` to start a separate history, or remove the file to reset it. Authentication and built-in email/chat integrations remain future improvements.
