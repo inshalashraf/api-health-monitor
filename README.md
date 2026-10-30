@@ -20,7 +20,7 @@ python -m api_health_monitor.cli --help
 
 - `--config`: JSON endpoint configuration (default: `config/endpoints.json`)
 - `--timeout`: seconds per request (default: 5)
-- `--expected-status`: HTTP status considered healthy (default: 200)
+- `--expected-status`: default HTTP status considered healthy (default: 200); an endpoint can override it with `expected_status` in the JSON config
 - `--retries`: retries for network errors and HTTP 5xx responses (default: 2)
 - `--retry-delay`: initial exponential-backoff delay in seconds (default: 0.5)
 - `--json` / `--csv`: report output paths
@@ -53,12 +53,27 @@ python -m api_health_monitor.cli --interval 10 --max-runs 5
 
 Reports are refreshed after each cycle, while JSONL history is appended so uptime and average latency summaries accumulate across runs. Continuous mode exits with status 1 if any cycle finds an unhealthy endpoint, and status 2 if a configuration or report/history error occurs. Only monitor endpoints you own or are authorized to check.
 
+### Endpoint-specific success codes
+
+Some APIs use a successful status other than 200, such as `204 No Content` for a health endpoint or `301` for a redirect-only check. Set `expected_status` on an individual endpoint; it overrides the command-line default for that endpoint:
+
+```json
+{
+  "endpoints": [
+    {"name": "Website", "url": "https://example.com", "expected_status": 200},
+    {"name": "Readiness probe", "url": "https://api.example.com/ready", "expected_status": 204}
+  ]
+}
+```
+
+The value must be an integer HTTP status from 100 through 599. Endpoints without this setting continue to use `--expected-status`.
+
 ## Features
 
 - HTTP status and per-request latency checks
 - Attempt counts and total check duration, including retry delays
 - Timeout, DNS, connection, and HTTP error reporting
-- Configurable healthy status code
+- Configurable global and per-endpoint healthy status codes
 - Exponential-backoff retries for network failures and HTTP 5xx responses; 4xx responses are not retried
 - Timestamped JSON summary and CSV reports
 - Append-only JSON Lines history, all-time uptime percentage, and average measured latency per endpoint
