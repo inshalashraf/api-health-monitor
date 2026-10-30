@@ -61,6 +61,15 @@ class MonitorTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 load_config(path)
 
+    def test_config_rejects_invalid_endpoint_expected_status(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "config.json"
+            path.write_text(json.dumps({"endpoints": [
+                {"name": "sample", "url": "https://example.com", "expected_status": 700}
+            ]}), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "expected_status"):
+                load_config(path)
+
     def test_report_generation(self):
         result = CheckResult("sample", "https://example.com", "now", 200, 1.2, True)
         with tempfile.TemporaryDirectory() as directory:

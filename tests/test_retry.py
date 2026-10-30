@@ -20,6 +20,22 @@ class RetryTests(unittest.TestCase):
             "sample", "https://example.com", "now", 200, 2.0, True
         )
 
+    @patch("api_health_monitor.retry.check_endpoint")
+    def test_endpoint_expected_status_overrides_global_default(self, check):
+        check.return_value = CheckResult(
+            "sample", "https://example.com", "now", 204, 2.0, True
+        )
+        endpoint = {**self.endpoint, "expected_status": 204}
+        result = check_with_retries(endpoint, expected_status=200, retries=0)
+        self.assertTrue(result.healthy)
+        check.assert_called_once_with(endpoint, timeout=5.0, expected_status=204)
+
+    def test_invalid_endpoint_expected_status_is_rejected(self):
+        for value in (True, 99, 600, "204"):
+            with self.subTest(value=value):
+                with self.assertRaises(ValueError):
+                    check_with_retries({**self.endpoint, "expected_status": value})
+
     @patch("api_health_monitor.retry.time.sleep")
     @patch("api_health_monitor.retry.check_endpoint")
     def test_retries_network_error_then_succeeds(self, check, sleep):

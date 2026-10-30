@@ -20,10 +20,14 @@ def check_with_retries(
     if retries < 0 or retry_delay < 0:
         raise ValueError("retries and retry_delay cannot be negative")
 
+    endpoint_expected_status = endpoint.get("expected_status", expected_status)
+    if isinstance(endpoint_expected_status, bool) or not isinstance(endpoint_expected_status, int) or not 100 <= endpoint_expected_status <= 599:
+        raise ValueError("endpoint expected_status must be an integer between 100 and 599")
+
     started = perf_counter()
     result: CheckResult | None = None
     for attempt in range(retries + 1):
-        result = check_endpoint(endpoint, timeout=timeout, expected_status=expected_status)
+        result = check_endpoint(endpoint, timeout=timeout, expected_status=endpoint_expected_status)
         invalid_url = (result.error or "").startswith("URL must start with http:// or https://")
         transient = (result.status_code is None and not invalid_url) or (
             result.status_code is not None and 500 <= result.status_code <= 599
