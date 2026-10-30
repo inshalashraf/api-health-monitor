@@ -72,6 +72,11 @@ def load_config(path: str | Path) -> dict[str, Any]:
     for index, endpoint in enumerate(endpoints):
         if not isinstance(endpoint, dict) or not isinstance(endpoint.get("url"), str):
             raise ValueError(f"Endpoint at index {index} must include a URL string")
+        status = endpoint.get("expected_status")
+        if status is not None and (
+            isinstance(status, bool) or not isinstance(status, int) or not 100 <= status <= 599
+        ):
+            raise ValueError(f"Endpoint at index {index} expected_status must be an integer between 100 and 599")
     return config
 
 
