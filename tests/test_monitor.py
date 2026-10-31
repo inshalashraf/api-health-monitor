@@ -61,6 +61,28 @@ class MonitorTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 load_config(path)
 
+    def test_config_rejects_invalid_latency_threshold(self):
+        for value in (0, -1, True, "100"):
+            with self.subTest(value=value), tempfile.TemporaryDirectory() as directory:
+                path = Path(directory) / "config.json"
+                path.write_text(json.dumps({"endpoints": [
+                    {"name": "sample", "url": "https://example.com", "max_response_time_ms": value}
+                ]}), encoding="utf-8")
+                with self.assertRaisesRegex(ValueError, "max_response_time_ms"):
+                    load_config(path)
+
+    @patch("api_health_monitor.monitor.urlopen")
+    def test_slow_response_exceeds_endpoint_threshold(self, mocked):
+        response = MagicMock()
+        response.getcode.return_value = 200
+        mocked.return_value.__enter__.return_value = response
+        with patch("api_health_monitor.monitor.time.perf_counter", side_effect=[1.0, 1.2]):
+            result = check_endpoint(
+                {"name": "sample", "url": "https://example.com", "max_response_time_ms": 100}
+            )
+        self.assertFalse(result.healthy)
+        self.assertIn("exceeded limit", result.error)
+
     def test_config_rejects_invalid_endpoint_expected_status(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "config.json"
