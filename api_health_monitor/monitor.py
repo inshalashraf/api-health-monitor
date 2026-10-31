@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import csv
 import json
+import math
 import time
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
@@ -38,9 +39,10 @@ def check_endpoint(endpoint: dict[str, str], *, timeout: float = 5.0,
     if max_response_time_ms is not None and (
         isinstance(max_response_time_ms, bool)
         or not isinstance(max_response_time_ms, (int, float))
+        or not math.isfinite(max_response_time_ms)
         or max_response_time_ms <= 0
     ):
-        raise ValueError("max_response_time_ms must be a positive number")
+        raise ValueError("max_response_time_ms must be a finite positive number")
     checked_at = datetime.now(timezone.utc).isoformat()
     if not url.startswith(("https://", "http://")):
         return CheckResult(name, url, checked_at, None, None, False,
@@ -89,9 +91,10 @@ def load_config(path: str | Path) -> dict[str, Any]:
         if latency_limit is not None and (
             isinstance(latency_limit, bool)
             or not isinstance(latency_limit, (int, float))
+            or not math.isfinite(latency_limit)
             or latency_limit <= 0
         ):
-            raise ValueError(f"Endpoint at index {index} max_response_time_ms must be a positive number")
+            raise ValueError(f"Endpoint at index {index} max_response_time_ms must be a finite positive number")
         status = endpoint.get("expected_status")
         if status is not None and (
             isinstance(status, bool) or not isinstance(status, int) or not 100 <= status <= 599
