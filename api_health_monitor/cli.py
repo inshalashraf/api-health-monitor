@@ -1,5 +1,6 @@
 """Command-line entry point."""
 import argparse
+import math
 import sys
 
 from .alerts import send_webhook_alert
@@ -76,6 +77,9 @@ def main() -> int:
     parser.add_argument("--interval", type=float, default=0, help="Seconds between cycles; 0 runs once (default: 0)")
     parser.add_argument("--max-runs", type=int, default=None, help="Stop after this many cycles; omit for continuous monitoring")
     args = parser.parse_args()
+    for option, value in (("--timeout", args.timeout), ("--retry-delay", args.retry_delay), ("--interval", args.interval)):
+        if not math.isfinite(value):
+            parser.error(f"{option} must be a finite number")
     if args.timeout <= 0:
         parser.error("--timeout must be greater than zero")
     if not 100 <= args.expected_status <= 599:
