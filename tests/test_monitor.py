@@ -1,5 +1,6 @@
 """Unit tests for endpoint checks and reports."""
 import json
+import math
 import tempfile
 import unittest
 from pathlib import Path
@@ -62,7 +63,7 @@ class MonitorTests(unittest.TestCase):
                 load_config(path)
 
     def test_config_rejects_invalid_latency_threshold(self):
-        for value in (0, -1, True, "100"):
+        for value in (0, -1, True, "100", math.nan, math.inf, -math.inf):
             with self.subTest(value=value), tempfile.TemporaryDirectory() as directory:
                 path = Path(directory) / "config.json"
                 path.write_text(json.dumps({"endpoints": [
@@ -70,6 +71,11 @@ class MonitorTests(unittest.TestCase):
                 ]}), encoding="utf-8")
                 with self.assertRaisesRegex(ValueError, "max_response_time_ms"):
                     load_config(path)
+
+    def test_direct_check_rejects_non_finite_latency_threshold(self):
+        for value in (math.nan, math.inf, -math.inf):
+            with self.subTest(value=value), self.assertRaisesRegex(ValueError, "finite positive"):
+                check_endpoint({"url": "https://example.com", "max_response_time_ms": value})
 
     @patch("api_health_monitor.monitor.urlopen")
     def test_slow_response_exceeds_endpoint_threshold(self, mocked):

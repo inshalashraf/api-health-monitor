@@ -29,6 +29,8 @@ python -m api_health_monitor.cli --help
 - `--interval`: seconds between monitoring cycles; 0 runs once (default: 0)
 - `--max-runs`: stop after this many cycles; omit to run continuously when an interval is set
 
+Timing options must be finite numbers; timeout must be positive, while retry delay and interval may be zero but cannot be negative. Per-endpoint `max_response_time_ms` must also be a finite positive number.
+
 ### Run continuously
 
 Check every 30 seconds until stopped with Ctrl+C:
