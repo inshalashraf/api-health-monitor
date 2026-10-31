@@ -70,7 +70,7 @@ The value must be an integer HTTP status from 100 through 599. Endpoints without
 
 ## Features
 
-- HTTP status and per-request latency checks
+- HTTP status and per-request latency checks, with optional per-endpoint latency budgets
 - Attempt counts and total check duration, including retry delays
 - Timeout, DNS, connection, and HTTP error reporting
 - Configurable global and per-endpoint healthy status codes

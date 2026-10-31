@@ -34,6 +34,13 @@ def check_endpoint(endpoint: dict[str, str], *, timeout: float = 5.0,
     """Perform a GET request and measure elapsed time."""
     name = endpoint.get("name") or endpoint.get("url") or "unnamed"
     url = endpoint.get("url", "")
+    max_response_time_ms = endpoint.get("max_response_time_ms")
+    if max_response_time_ms is not None and (
+        isinstance(max_response_time_ms, bool)
+        or not isinstance(max_response_time_ms, (int, float))
+        or max_response_time_ms <= 0
+    ):
+        raise ValueError("max_response_time_ms must be a positive number")
     checked_at = datetime.now(timezone.utc).isoformat()
     if not url.startswith(("https://", "http://")):
         return CheckResult(name, url, checked_at, None, None, False,
@@ -48,11 +55,17 @@ def check_endpoint(endpoint: dict[str, str], *, timeout: float = 5.0,
         elapsed = round((time.perf_counter() - started) * 1000, 2)
         healthy = status == expected_status
         error = None if healthy else f"Expected HTTP {expected_status}, received {status}"
+        if healthy and max_response_time_ms is not None and elapsed > max_response_time_ms:
+            healthy = False
+            error = f"Response time {elapsed:.2f} ms exceeded limit of {max_response_time_ms:g} ms"
         return CheckResult(name, url, checked_at, status, elapsed, healthy, error, total_duration_ms=elapsed)
     except HTTPError as exc:
         elapsed = round((time.perf_counter() - started) * 1000, 2)
         healthy = exc.code == expected_status
         error = None if healthy else f"Expected HTTP {expected_status}, received {exc.code}"
+        if healthy and max_response_time_ms is not None and elapsed > max_response_time_ms:
+            healthy = False
+            error = f"Response time {elapsed:.2f} ms exceeded limit of {max_response_time_ms:g} ms"
         return CheckResult(name, url, checked_at, exc.code, elapsed, healthy, error, total_duration_ms=elapsed)
     except (URLError, TimeoutError, OSError) as exc:
         elapsed = round((time.perf_counter() - started) * 1000, 2)
@@ -72,6 +85,13 @@ def load_config(path: str | Path) -> dict[str, Any]:
     for index, endpoint in enumerate(endpoints):
         if not isinstance(endpoint, dict) or not isinstance(endpoint.get("url"), str):
             raise ValueError(f"Endpoint at index {index} must include a URL string")
+        latency_limit = endpoint.get("max_response_time_ms")
+        if latency_limit is not None and (
+            isinstance(latency_limit, bool)
+            or not isinstance(latency_limit, (int, float))
+            or latency_limit <= 0
+        ):
+            raise ValueError(f"Endpoint at index {index} max_response_time_ms must be a positive number")
         status = endpoint.get("expected_status")
         if status is not None and (
             isinstance(status, bool) or not isinstance(status, int) or not 100 <= status <= 599
