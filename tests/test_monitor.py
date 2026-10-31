@@ -68,7 +68,7 @@ class MonitorTests(unittest.TestCase):
                 path = Path(directory) / "config.json"
                 path.write_text(json.dumps({"endpoints": [
                     {"name": "sample", "url": "https://example.com", "max_response_time_ms": value}
-                }]}), encoding="utf-8")
+                ]}), encoding="utf-8")
                 with self.assertRaisesRegex(ValueError, "max_response_time_ms"):
                     load_config(path)
 
